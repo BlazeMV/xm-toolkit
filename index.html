@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#020d0f">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="XM Toolkit">
+  <meta name="description" content="Ingress toolkit — miscellaneous tools for Ingress players.">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/icons/icon-192.png">
+  <title>XM Toolkit</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="scanline"></div>
+<div id="done-toast"></div>
+
+<!-- Android PWA install banner -->
+<div id="install-banner">
+  <img src="assets/icons/icon-192.png" alt="XM Toolkit icon">
+  <div id="install-banner-text">
+    <strong>XM TOOLKIT</strong>
+    <span>INSTALL AS APP</span>
+  </div>
+  <button id="install-btn">INSTALL</button>
+  <button id="install-dismiss">✕</button>
+</div>
+
+<!-- Top bar -->
+<div id="topbar">
+  <button id="topbar-back">←</button>
+  <div id="topbar-logo">
+    <svg viewBox="0 0 50 50" fill="none">
+      <polygon points="25,3 47,14 47,36 25,47 3,36 3,14" stroke="rgba(0,229,255,0.6)" stroke-width="1.5" fill="rgba(0,229,255,0.05)"/>
+      <polygon points="25,10 40,18 40,32 25,40 10,32 10,18" stroke="rgba(0,229,255,0.4)" stroke-width="1" fill="rgba(0,229,255,0.03)"/>
+      <circle cx="25" cy="25" r="6" stroke="var(--enl)" stroke-width="1.5" fill="rgba(0,229,255,0.1)"/>
+      <line x1="25" y1="10" x2="25" y2="19" stroke="rgba(0,229,255,0.5)" stroke-width="1"/>
+      <line x1="25" y1="31" x2="25" y2="40" stroke="rgba(0,229,255,0.5)" stroke-width="1"/>
+      <line x1="10" y1="18" x2="19" y2="23" stroke="rgba(0,229,255,0.5)" stroke-width="1"/>
+      <line x1="31" y1="27" x2="40" y2="32" stroke="rgba(0,229,255,0.5)" stroke-width="1"/>
+      <line x1="40" y1="18" x2="31" y2="23" stroke="rgba(0,229,255,0.5)" stroke-width="1"/>
+      <line x1="19" y1="27" x2="10" y2="32" stroke="rgba(0,229,255,0.5)" stroke-width="1"/>
+    </svg>
+    <div id="topbar-title">XM TOOLKIT</div>
+  </div>
+  <div id="topbar-screen-name"></div>
+</div>
+
+<!-- Screens -->
+<div id="screens">
+
+  <!-- HOME -->
+  <div class="screen active" id="screen-home">
+    <div class="home-greeting">
+      <h2>AGENT DASHBOARD</h2>
+      <p>SELECT A TOOL TO BEGIN</p>
+    </div>
+
+    <div class="section-label">TOOLS</div>
+    <div class="tools-grid">
+
+      <div class="tool-card" data-screen="cooldown">
+        <div class="tool-icon">⏱</div>
+        <div class="tool-name">PORTAL COOLDOWN</div>
+        <div class="tool-desc">Track portal hack cooldowns with floating bubbles</div>
+      </div>
+
+      <div class="tool-card coming-soon">
+        <div class="tool-badge">SOON</div>
+        <div class="tool-icon">📡</div>
+        <div class="tool-name">RANGE CALCULATOR</div>
+        <div class="tool-desc">Calculate portal link range by level</div>
+      </div>
+
+      <div class="tool-card coming-soon">
+        <div class="tool-badge">SOON</div>
+        <div class="tool-icon">⚡</div>
+        <div class="tool-name">VRBB HELPER</div>
+        <div class="tool-desc">Portal upgrade & VRBB planning</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- COOLDOWN TIMER -->
+  <div class="screen" id="screen-cooldown">
+    <div id="duration-row"><div id="dur-scroll"></div></div>
+
+    <div id="add-form">
+      <input id="portal-name-input" type="text" placeholder="Portal name (optional)" maxlength="24" autocomplete="off"/>
+      <button class="btn" id="add-btn">+ ADD</button>
+    </div>
+
+    <div class="hint" id="hint">Each portal gets its own floating bubble</div>
+  </div>
+
+</div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
