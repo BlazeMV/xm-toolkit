@@ -1,4 +1,4 @@
-const CACHE = 'xm-toolkit-v2';
+const CACHE = 'xm-toolkit-v3';
 const ASSETS = [
   './index.html',
   './css/style.css',

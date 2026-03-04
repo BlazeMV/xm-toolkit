@@ -176,7 +176,7 @@ function makeDraggable(el) {
   });
 }
 
-// ── Toast / vibrate ──
+// ── Toast / vibrate / notify ──
 const toast = document.getElementById('done-toast');
 function showToast(msg) {
   toast.textContent = msg;
@@ -185,6 +185,29 @@ function showToast(msg) {
   toast._t = setTimeout(() => toast.classList.remove('show'), 3000);
 }
 function vibrate() { if (navigator.vibrate) navigator.vibrate([200,100,200]); }
+
+function notify(portalName, hacks) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  const opts = {
+    body: `${portalName} READY — HACK ${hacks}`,
+    icon: './assets/icons/icon-192.png',
+    tag: `portal-${portalName}-${hacks}`,
+  };
+  if (navigator.serviceWorker && navigator.serviceWorker.ready) {
+    navigator.serviceWorker.ready.then(reg => reg.showNotification('XM Toolkit', opts)).catch(() => {});
+  } else {
+    try { new Notification('XM Toolkit', opts); } catch {}
+  }
+}
+
+// ── Background completion alerts ──
+const bgTimeouts = {};
+function scheduleBgAlert(t) {
+  if (bgTimeouts[t.id]) clearTimeout(bgTimeouts[t.id]);
+  const remaining = t.duration - (Date.now() - t.startedAt);
+  if (remaining <= 0) return;
+  bgTimeouts[t.id] = setTimeout(() => tick(), remaining + 50);
+}
 
 // ── Main tick ──
 let prevDoneIds = new Set(
@@ -220,7 +243,10 @@ function tick() {
       save();
       showToast(`⚡ ${t.name} READY — HACK ${t.hacks}`);
       vibrate();
+      notify(t.name, t.hacks);
     }
+
+    if (!isDone) scheduleBgAlert(t);
   });
 
   prevDoneIds = new Set(
@@ -283,7 +309,9 @@ async function requestWakeLock() {
   try { if ('wakeLock' in navigator) await navigator.wakeLock.request('screen'); } catch {}
 }
 requestWakeLock();
-document.addEventListener('visibilitychange', () => { if (!document.hidden) requestWakeLock(); });
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) { requestWakeLock(); tick(); }
+});
 
 // ── Notification permission ──
 if ('Notification' in window && Notification.permission === 'default') {
