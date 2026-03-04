@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Ingress-themed Progressive Web App (PWA) — a multi-tool toolkit for Ingress players. Currently ships a portal hack cooldown tracker, portal link range calculator, and settings screen with optional ntfy.sh push notifications. VRBB helper planned.
+Ingress-themed Progressive Web App (PWA) — a multi-tool toolkit for Ingress players. Currently ships a portal hack cooldown tracker, portal link range calculator, drone hack reminder, and settings screen with optional ntfy.sh push notifications. VRBB helper planned.
 
 **Zero dependencies.** Pure vanilla HTML/CSS/JS served as static files. No build step, no bundler, no package.json. Only external resource is Google Fonts CDN (Share Tech Mono + Orbitron).
 
@@ -13,8 +13,8 @@ Ingress-themed Progressive Web App (PWA) — a multi-tool toolkit for Ingress pl
 ```
 index.html          → Single-page app shell, all screens defined here
 env.js              → APP_VERSION constant (single source of truth for version)
-css/style.css       → All styles (~720 lines)
-js/app.js           → All logic (~580 lines)
+css/style.css       → All styles (~830 lines)
+js/app.js           → All logic (~780 lines)
 sw.js               → Service worker (caching + background notification scheduling)
 manifest.json       → PWA manifest (standalone, portrait-primary)
 assets/icons/       → icon-192.png, icon-512.png
@@ -41,9 +41,10 @@ To add a new screen: add HTML in `#screens`, register in the `SCREENS` object in
 - `save()` serializes entire `timers` array on every mutation
 - `bubbleMap` object maps timer IDs to their DOM elements
 - `prevDoneIds` Set tracks completion edges to avoid re-firing alerts
-- Single `setInterval(tick, 1000)` drives all timer UI updates
+- Single `setInterval(tick, 1000)` drives all timer UI updates + drone UI
 - `visibilitychange` triggers immediate `tick()` to catch up on completions when returning to app
 - Notification scheduling delegated to SW via `postMessage` (see Service Worker section)
+- Drone state in `localStorage` keys `xm-drone` (timer) and `xm-drone-config` (settings)
 
 ### Bubbles (Portal Timers)
 
@@ -67,6 +68,20 @@ To add a new screen: add HTML in `#screens`, register in the `SCREENS` object in
 - Amp type colors via `data-aval` attribute: RLA=cyan, SBUL=orange, VRLA=green
 - SBUL slots swap mask-image to `ultralink.png`; all others use `linkamp.png`
 
+### Drone Tracker
+
+- Single global timer (one drone per player) — state persists in `xm-drone` localStorage key
+- `droneState`: `{ lastHack, hacks }` — timestamp + lifetime counter
+- `droneConfig`: `{ cooldown, idleAfter, idleRepeat }` — persisted in `xm-drone-config`
+- Three visual states: COOLING DOWN (cyan), READY (green), OVERDUE (orange, pulsing)
+- SVG ring progress indicator (radius 62, `DRONE_ARC_C` circumference)
+- `updateDroneUI()` called from `tick()` — updates ring, countdown, state label, relative time
+- Drone state variables declared before `tick()` to avoid temporal dead zone
+- On hack: cancels all drone notifications (SW + 4 ntfy IDs), schedules new set
+- ntfy: pre-schedules `drone-ready` + 3 idle reminders (`drone-idle-1/2/3`) server-side
+- SW: only schedules `drone-ready` (longer delays may not survive background kill)
+- Configurable cooldown (min), idle threshold (hours), idle repeat interval (hours) via settings
+
 ### Settings Screen
 
 - Accessed via gear icon (⚙) in the topbar (right side)
@@ -89,7 +104,11 @@ To add a new screen: add HTML in `#screens`, register in the `SCREENS` object in
 - Works in background on both iOS and Android (delivery handled server-side by ntfy.sh)
 - User must install ntfy app and subscribe to topic
 
-**Integration:** `addTimer`, `removeTimer`, bubble tap (restart/force-complete) all call both notification channels. Init reschedule loop only fires SW notifications (ntfy already queued server-side).
+**Drone Reminder Settings:**
+- Cooldown (minutes), idle alert threshold (hours), idle repeat interval (hours)
+- Number inputs with min/max validation, persisted to `xm-drone-config`
+
+**Integration:** `addTimer`, `removeTimer`, bubble tap (restart/force-complete) all call both notification channels. `droneHacked()` calls both channels with drone-specific IDs. Init reschedule loop only fires SW notifications (ntfy already queued server-side).
 
 ## Design System
 
@@ -152,7 +171,7 @@ To add a new screen: add HTML in `#screens`, register in the `SCREENS` object in
 
 ### Background Notifications
 
-- Main thread posts `{ type: 'schedule', id, name, hacks, delay }` to SW via `postMessage`
+- Main thread posts `{ type: 'schedule', id, name, hacks, delay, customTitle?, customBody? }` to SW via `postMessage`
 - SW uses `setTimeout` inside `event.waitUntil()` to keep alive for the timer duration (up to 300s)
 - Fires `self.registration.showNotification()` with vibrate pattern when timer completes
 - `notificationclick` handler focuses existing window or opens new one
@@ -164,7 +183,7 @@ To add a new screen: add HTML in `#screens`, register in the `SCREENS` object in
 
 | API | Purpose |
 |-----|---------|
-| localStorage | Timer persistence, install-dismiss cooldown, notification config (`xm-sysnotif`, `xm-ntfy`) |
+| localStorage | Timer persistence, drone state (`xm-drone`, `xm-drone-config`), install-dismiss cooldown, notification config (`xm-sysnotif`, `xm-ntfy`) |
 | Service Worker | Offline support, asset caching, background notification scheduling |
 | Vibration API | Haptic feedback on timer completion `[200,100,200]` (Android only) |
 | Wake Lock API | Keep screen on while timers are running |

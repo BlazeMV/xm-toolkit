@@ -34,7 +34,7 @@ const scheduled = {};
 
 self.addEventListener('message', e => {
   if (e.data.type === 'schedule') {
-    const { id, name, hacks, delay } = e.data;
+    const { id, name, hacks, delay, customTitle, customBody } = e.data;
     // Cancel any previous schedule for this timer
     if (scheduled[id]) clearTimeout(scheduled[id]);
     if (delay <= 0) return;
@@ -43,10 +43,10 @@ self.addEventListener('message', e => {
     e.waitUntil(new Promise(resolve => {
       scheduled[id] = setTimeout(() => {
         delete scheduled[id];
-        self.registration.showNotification('XM Toolkit', {
-          body: `${name} READY — HACK ${hacks}`,
+        self.registration.showNotification(customTitle || 'XM Toolkit', {
+          body: customBody || `${name} READY — HACK ${hacks}`,
           icon: './assets/icons/icon-192.png',
-          tag: `portal-${id}-${hacks}`,
+          tag: `portal-${id}-${hacks || 0}`,
           renotify: true,
           vibrate: [200, 100, 200, 100, 200],
         }).then(resolve, resolve);

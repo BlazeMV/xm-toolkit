@@ -3,6 +3,7 @@ const SCREENS = {
   home:     { el: document.getElementById('screen-home'),     title: null },
   cooldown: { el: document.getElementById('screen-cooldown'), title: 'COOLDOWN' },
   range:    { el: document.getElementById('screen-range'),    title: 'RANGE CALC' },
+  drone:    { el: document.getElementById('screen-drone'),    title: 'DRONE' },
   settings: { el: document.getElementById('screen-settings'), title: 'SETTINGS' },
 };
 const toolCards  = document.querySelectorAll('.tool-card[data-screen]');
@@ -219,6 +220,23 @@ function cancelNotification(id) {
   swPost({ type: 'cancel', id });
 }
 
+// ── Drone state (declared early so tick() can call updateDroneUI) ──
+const DRONE_ARC_C = 2 * Math.PI * 62;
+let droneState = { lastHack: null, hacks: 0 };
+let droneConfig = { cooldown: 60, idleAfter: 4, idleRepeat: 8 };
+
+function loadDroneState() {
+  try { const d = JSON.parse(localStorage.getItem('xm-drone')); if (d) droneState = d; } catch {}
+}
+function saveDroneState() { localStorage.setItem('xm-drone', JSON.stringify(droneState)); }
+function loadDroneConfig() {
+  try { const d = JSON.parse(localStorage.getItem('xm-drone-config')); if (d) droneConfig = d; } catch {}
+}
+function saveDroneConfig() { localStorage.setItem('xm-drone-config', JSON.stringify(droneConfig)); }
+
+loadDroneState();
+loadDroneConfig();
+
 // ── Main tick ──
 let prevDoneIds = new Set(
         timers.filter(t => Date.now() - t.startedAt >= t.duration).map(t => t.id)
@@ -259,6 +277,7 @@ function tick() {
   prevDoneIds = new Set(
           timers.filter(t => Date.now() - t.startedAt >= t.duration).map(t => t.id)
   );
+  updateDroneUI();
 }
 
 // ── Init ──
@@ -270,6 +289,14 @@ tick();
 // Schedule SW notifications for any running timers (handles app restart)
 navigator.serviceWorker && navigator.serviceWorker.ready.then(() => {
   if (sysNotifEnabled) timers.forEach(t => scheduleNotification(t));
+  // Reschedule drone ready notification if still cooling
+  if (droneState.lastHack) {
+    const droneRemaining = (droneConfig.cooldown * 60 * 1000) - (Date.now() - droneState.lastHack);
+    if (droneRemaining > 0 && sysNotifEnabled) {
+      swPost({ type: 'schedule', id: 'drone-ready', name: 'Drone', hacks: 0, delay: droneRemaining,
+        customTitle: 'XM Toolkit', customBody: '\u{1F6F8} DRONE READY \u2014 HACK NOW' });
+    }
+  }
 });
 
 // ── Range Calculator ──
@@ -384,6 +411,160 @@ ampPicker.addEventListener('click', e => {
 });
 
 calcRange();
+
+// ── Drone Tracker ──
+function cancelDroneNotifications() {
+  swPost({ type: 'cancel', id: 'drone-ready' });
+  ['drone-ready','drone-idle-1','drone-idle-2','drone-idle-3'].forEach(mid => {
+    if (!ntfyConfig.enabled || !ntfyConfig.topic) return;
+    fetch(`${ntfyConfig.server}/${ntfyConfig.topic}/${mid}`, {
+      method: 'DELETE', headers: ntfyHeaders({}),
+    }).catch(() => {});
+  });
+}
+
+function scheduleDroneNotifications() {
+  const cooldownMs = droneConfig.cooldown * 60 * 1000;
+  const remaining = cooldownMs - (Date.now() - droneState.lastHack);
+
+  // SW: schedule ready notification if still cooling
+  if (remaining > 0 && sysNotifEnabled) {
+    swPost({ type: 'schedule', id: 'drone-ready', name: 'Drone', hacks: 0, delay: remaining,
+      customTitle: 'XM Toolkit', customBody: '\u{1F6F8} DRONE READY \u2014 HACK NOW' });
+  }
+
+  // ntfy: schedule ready + idle reminders
+  if (!ntfyConfig.enabled || !ntfyConfig.topic) return;
+  const cooldownSec = droneConfig.cooldown * 60;
+  const idleAfterSec = droneConfig.idleAfter * 3600;
+  const idleRepeatSec = droneConfig.idleRepeat * 3600;
+
+  // Ready notification
+  fetch(`${ntfyConfig.server}/${ntfyConfig.topic}`, {
+    method: 'POST',
+    headers: ntfyHeaders({ 'X-Message-Id': 'drone-ready', 'X-Delay': `${cooldownSec}s`,
+      'X-Title': 'XM Toolkit', 'X-Tags': 'flying_saucer', 'X-Icon': ntfyIcon }),
+    body: '\u{1F6F8} DRONE READY \u2014 HACK NOW',
+  }).catch(() => {});
+
+  // Idle reminders
+  for (let i = 1; i <= 3; i++) {
+    const delaySec = idleAfterSec + (i - 1) * idleRepeatSec;
+    const hoursAgo = Math.round(delaySec / 3600);
+    fetch(`${ntfyConfig.server}/${ntfyConfig.topic}`, {
+      method: 'POST',
+      headers: ntfyHeaders({ 'X-Message-Id': `drone-idle-${i}`, 'X-Delay': `${delaySec}s`,
+        'X-Title': 'XM Toolkit', 'X-Tags': 'flying_saucer', 'X-Icon': ntfyIcon }),
+      body: `\u{1F6F8} DRONE HACK OVERDUE \u2014 ${hoursAgo}h SINCE LAST HACK`,
+    }).catch(() => {});
+  }
+}
+
+function droneHacked() {
+  cancelDroneNotifications();
+  droneState.lastHack = Date.now();
+  droneState.hacks = (droneState.hacks || 0) + 1;
+  saveDroneState();
+  scheduleDroneNotifications();
+  updateDroneUI();
+  showToast('\u{1F6F8} DRONE HACK RECORDED');
+}
+
+document.getElementById('drone-hack-btn').addEventListener('click', droneHacked);
+
+function formatDuration(ms) {
+  const totalSec = Math.abs(Math.floor(ms / 1000));
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  if (h > 0) return `${h}h ${m}m`;
+  return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+function formatRelative(ms) {
+  const sec = Math.floor(ms / 1000);
+  if (sec < 60) return `${sec}s ago`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const h = Math.floor(min / 60);
+  const rm = min % 60;
+  return rm > 0 ? `${h}h ${rm}m ago` : `${h}h ago`;
+}
+
+function updateDroneUI() {
+  const statusEl = document.getElementById('drone-status');
+  const arcEl = document.getElementById('drone-arc');
+  const countdownEl = document.getElementById('drone-countdown');
+  const stateLabel = document.getElementById('drone-state-label');
+  const lastHackEl = document.getElementById('drone-last-hack');
+  const totalHacksEl = document.getElementById('drone-total-hacks');
+
+  totalHacksEl.textContent = `Total hacks: ${droneState.hacks || 0}`;
+
+  if (!droneState.lastHack) {
+    statusEl.className = 'drone-status';
+    arcEl.style.strokeDashoffset = DRONE_ARC_C.toFixed(2);
+    countdownEl.textContent = '--:--';
+    stateLabel.textContent = 'NO HACKS YET';
+    lastHackEl.textContent = 'Last hack: never';
+    return;
+  }
+
+  const now = Date.now();
+  const elapsed = now - droneState.lastHack;
+  const cooldownMs = droneConfig.cooldown * 60 * 1000;
+  const idleAfterMs = droneConfig.idleAfter * 3600 * 1000;
+
+  lastHackEl.textContent = `Last hack: ${formatRelative(elapsed)}`;
+
+  if (elapsed < cooldownMs) {
+    // COOLING DOWN
+    const remaining = cooldownMs - elapsed;
+    const pct = elapsed / cooldownMs;
+    statusEl.className = 'drone-status cooling';
+    arcEl.style.strokeDashoffset = (DRONE_ARC_C * (1 - pct)).toFixed(2);
+    countdownEl.textContent = formatDuration(remaining);
+    stateLabel.textContent = 'COOLING DOWN';
+  } else if (elapsed < idleAfterMs) {
+    // READY
+    statusEl.className = 'drone-status ready';
+    arcEl.style.strokeDashoffset = '0';
+    countdownEl.textContent = 'READY';
+    stateLabel.textContent = 'HACK NOW';
+  } else {
+    // OVERDUE
+    const overdueSince = elapsed - cooldownMs;
+    statusEl.className = 'drone-status overdue';
+    arcEl.style.strokeDashoffset = '0';
+    countdownEl.textContent = 'OVERDUE';
+    stateLabel.textContent = `${formatDuration(overdueSince)} SINCE READY`;
+  }
+}
+
+updateDroneUI();
+
+// Drone settings UI
+function initDroneSettingsUI() {
+  const cooldownInput = document.getElementById('drone-cooldown-input');
+  const idleInput = document.getElementById('drone-idle-input');
+  const repeatInput = document.getElementById('drone-repeat-input');
+
+  cooldownInput.value = droneConfig.cooldown;
+  idleInput.value = droneConfig.idleAfter;
+  repeatInput.value = droneConfig.idleRepeat;
+
+  document.getElementById('drone-config-save-btn').addEventListener('click', () => {
+    const c = parseInt(cooldownInput.value) || 60;
+    const i = parseInt(idleInput.value) || 4;
+    const r = parseInt(repeatInput.value) || 8;
+    droneConfig.cooldown = Math.max(1, Math.min(1440, c));
+    droneConfig.idleAfter = Math.max(1, Math.min(72, i));
+    droneConfig.idleRepeat = Math.max(1, Math.min(72, r));
+    saveDroneConfig();
+    showToast('DRONE SETTINGS SAVED');
+  });
+}
+initDroneSettingsUI();
 
 const versionTag = document.getElementById('version-tag');
 if (versionTag && typeof APP_VERSION !== 'undefined') versionTag.textContent = `v${APP_VERSION}`;
