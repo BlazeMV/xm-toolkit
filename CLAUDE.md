@@ -12,9 +12,10 @@ Ingress-themed Progressive Web App (PWA) — a multi-tool toolkit for Ingress pl
 
 ```
 index.html          → Single-page app shell, all screens defined here
-css/style.css       → All styles (~450 lines)
-js/app.js           → All logic (~290 lines)
-sw.js               → Service worker (dev: network-first, prod: cache-first)
+env.js              → APP_VERSION constant (single source of truth for version)
+css/style.css       → All styles (~460 lines)
+js/app.js           → All logic (~330 lines)
+sw.js               → Service worker (caching + background notification scheduling)
 manifest.json       → PWA manifest (standalone, portrait-primary)
 assets/icons/       → icon-192.png, icon-512.png
 ```
@@ -40,6 +41,8 @@ To add a new screen: add HTML in `#screens`, register in the `SCREENS` object in
 - `bubbleMap` object maps timer IDs to their DOM elements
 - `prevDoneIds` Set tracks completion edges to avoid re-firing alerts
 - Single `setInterval(tick, 1000)` drives all timer UI updates
+- `visibilitychange` triggers immediate `tick()` to catch up on completions when returning to app
+- Notification scheduling delegated to SW via `postMessage` (see Service Worker section)
 
 ### Bubbles (Portal Timers)
 
@@ -95,22 +98,40 @@ To add a new screen: add HTML in `#screens`, register in the `SCREENS` object in
 - Classes: flat BEM-lite — bubble sub-elements use `pb-` prefix (`pb-ring`, `pb-time`, `pb-name`)
 - State modifiers: bare words (`.active`, `.done`, `.warning`, `.selected`, `.visible`, `.show`)
 
+## Versioning
+
+- `env.js` defines `APP_VERSION` — single source of truth
+- SW imports via `importScripts('./env.js')`, uses it for cache name (`xm-toolkit-v${APP_VERSION}`)
+- `app.js` reads the global to display version on the dashboard (`#version-tag`)
+- `env.js` is **not cached** by the SW — always fetched from network so version changes propagate
+- To release: bump `APP_VERSION` in `env.js` — cache busts automatically
+
 ## Service Worker
 
-- Cache name is versioned (`xm-toolkit-v2`) — bump on releases to bust cache
+- Cache name derived from `APP_VERSION` in `env.js`
 - **Dev mode** (localhost/127.0.0.1): network-first, cache as offline fallback only
 - **Production**: cache-first, then network; caches GET 200 responses; offline falls back to index.html
 - `skipWaiting()` + `clients.claim()` for immediate activation
+
+### Background Notifications
+
+- Main thread posts `{ type: 'schedule', id, name, hacks, delay }` to SW via `postMessage`
+- SW uses `setTimeout` inside `event.waitUntil()` to keep alive for the timer duration (up to 300s)
+- Fires `self.registration.showNotification()` with vibrate pattern when timer completes
+- `notificationclick` handler focuses existing window or opens new one
+- Cancel via `{ type: 'cancel', id }` message
+- **Android**: works reliably in background; users must enable Banner in notification category settings
+- **iOS**: only works while PWA is in foreground; background notifications require Push API (not implemented)
 
 ## Platform APIs
 
 | API | Purpose |
 |-----|---------|
 | localStorage | Timer persistence, install-dismiss cooldown |
-| Service Worker | Offline support, asset caching |
-| Vibration API | Haptic feedback on timer completion `[200,100,200]` |
+| Service Worker | Offline support, asset caching, background notification scheduling |
+| Vibration API | Haptic feedback on timer completion `[200,100,200]` (Android only) |
 | Wake Lock API | Keep screen on while timers are running |
-| Notification API | Permission requested on load (not yet used for push) |
+| Notification API | Permission requested on user gesture (first timer add); SW-based delivery |
 | beforeinstallprompt | Android PWA install banner with 7-day dismiss cooldown |
 | Pointer Events | Bubble drag handling (mouse + touch unified) |
 

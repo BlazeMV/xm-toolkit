@@ -10,6 +10,7 @@ An Ingress toolkit PWA for Android and iOS. A collection of tools for Ingress pl
 - Hack counter per portal (auto-increments on cooldown completion)
 - Tap running timer to force-complete (counts as a hack)
 - Tap completed timer to restart cooldown
+- System notifications via Service Worker (works in background on Android)
 - Vibration + toast alerts when portal is ready
 - Warning state (orange glow) at 10 seconds remaining
 - Bubbles snap to screen edges and persist positions
@@ -28,6 +29,7 @@ An Ingress toolkit PWA for Android and iOS. A collection of tools for Ingress pl
 ### Android
 1. Open in **Chrome**
 2. Tap the **INSTALL** banner at the bottom, or use **⋮** → **Add to Home Screen**
+3. For notification banners: Settings → Apps → XM Toolkit → Notifications → Categories → General → enable **Banner**
 
 ## Development
 
@@ -46,11 +48,15 @@ npx serve .
 
 The service worker uses network-first strategy on localhost, so file changes are reflected immediately on reload.
 
-### Cache Busting for Production
+### Versioning
 
-When deploying updates, bump the cache version in `sw.js`:
+The app version is defined in `env.js` as `APP_VERSION`. This single value controls:
+- The SW cache name (auto-busts cache on version change)
+- The version tag displayed on the dashboard
+
+To release an update, bump the version in `env.js`:
 ```js
-const CACHE = 'xm-toolkit-v3'; // increment version number
+const APP_VERSION = '3.1.1';
 ```
 
 ## Project Structure
@@ -58,8 +64,9 @@ const CACHE = 'xm-toolkit-v3'; // increment version number
 ```
 xm-toolkit/
 ├── index.html          # Single-page app shell (all screens)
+├── env.js              # App version (single source of truth)
 ├── manifest.json       # PWA manifest
-├── sw.js               # Service worker (offline support)
+├── sw.js               # Service worker (offline + background notifications)
 ├── CLAUDE.md           # AI assistant project context
 ├── css/
 │   └── style.css       # All styles
