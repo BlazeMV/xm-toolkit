@@ -57,6 +57,10 @@ document.getElementById('portal-name-input').addEventListener('keydown', e => {
 });
 
 function addTimer() {
+  // Request notification permission on user gesture (required for iOS PWA)
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
   const input = document.getElementById('portal-name-input');
   const name = input.value.trim() || `Portal ${timers.length + 1}`;
   const t = { id: Date.now(), name, startedAt: Date.now(), duration: selectedDur * 1000, hacks: 1 };
@@ -64,12 +68,14 @@ function addTimer() {
   input.value = '';
   save();
   spawnBubble(t);
+  scheduleNotification(t);
   updateHint();
 }
 
 function removeTimer(id) {
   timers = timers.filter(t => t.id !== id);
   if (bubbleMap[id]) { bubbleMap[id].remove(); delete bubbleMap[id]; }
+  cancelNotification(id);
   save();
   updateHint();
 }
@@ -124,10 +130,12 @@ function spawnBubble(t) {
     if (isDone) {
       timerObj.startedAt = now;
       prevDoneIds.delete(timerObj.id);
+      scheduleNotification(timerObj);
     } else {
       timerObj.hacks = (timerObj.hacks || 1) + 1;
       timerObj.startedAt = now - timerObj.duration;
       prevDoneIds.add(timerObj.id);
+      cancelNotification(timerObj.id);
     }
     save();
     tick();
@@ -186,27 +194,27 @@ function showToast(msg) {
 }
 function vibrate() { if (navigator.vibrate) navigator.vibrate([200,100,200]); }
 
-function notify(portalName, hacks) {
-  if (!('Notification' in window) || Notification.permission !== 'granted') return;
-  const opts = {
-    body: `${portalName} READY — HACK ${hacks}`,
-    icon: './assets/icons/icon-192.png',
-    tag: `portal-${portalName}-${hacks}`,
-  };
-  if (navigator.serviceWorker && navigator.serviceWorker.ready) {
-    navigator.serviceWorker.ready.then(reg => reg.showNotification('XM Toolkit', opts)).catch(() => {});
-  } else {
-    try { new Notification('XM Toolkit', opts); } catch {}
+// ── SW-based notification scheduling ──
+function swPost(msg) {
+  if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+    navigator.serviceWorker.controller.postMessage(msg);
   }
 }
 
-// ── Background completion alerts ──
-const bgTimeouts = {};
-function scheduleBgAlert(t) {
-  if (bgTimeouts[t.id]) clearTimeout(bgTimeouts[t.id]);
+function scheduleNotification(t) {
   const remaining = t.duration - (Date.now() - t.startedAt);
   if (remaining <= 0) return;
-  bgTimeouts[t.id] = setTimeout(() => tick(), remaining + 50);
+  swPost({
+    type: 'schedule',
+    id: t.id,
+    name: t.name,
+    hacks: (t.hacks || 1) + 1,
+    delay: remaining,
+  });
+}
+
+function cancelNotification(id) {
+  swPost({ type: 'cancel', id });
 }
 
 // ── Main tick ──
@@ -243,10 +251,7 @@ function tick() {
       save();
       showToast(`⚡ ${t.name} READY — HACK ${t.hacks}`);
       vibrate();
-      notify(t.name, t.hacks);
     }
-
-    if (!isDone) scheduleBgAlert(t);
   });
 
   prevDoneIds = new Set(
@@ -259,6 +264,11 @@ timers.forEach(t => { if (!t.hacks) t.hacks = 1; spawnBubble(t); });
 updateHint();
 setInterval(tick, 1000);
 tick();
+
+// Schedule SW notifications for any running timers (handles app restart)
+navigator.serviceWorker && navigator.serviceWorker.ready.then(() => {
+  timers.forEach(t => scheduleNotification(t));
+});
 
 const versionTag = document.getElementById('version-tag');
 if (versionTag && typeof APP_VERSION !== 'undefined') versionTag.textContent = `v${APP_VERSION}`;
@@ -316,7 +326,3 @@ document.addEventListener('visibilitychange', () => {
   if (!document.hidden) { requestWakeLock(); tick(); }
 });
 
-// ── Notification permission ──
-if ('Notification' in window && Notification.permission === 'default') {
-  Notification.requestPermission();
-}

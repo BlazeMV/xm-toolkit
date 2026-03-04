@@ -26,6 +26,49 @@ self.addEventListener('activate', e => {
   self.clients.claim();
 });
 
+// ── Scheduled background notifications ──
+const scheduled = {};
+
+self.addEventListener('message', e => {
+  if (e.data.type === 'schedule') {
+    const { id, name, hacks, delay } = e.data;
+    // Cancel any previous schedule for this timer
+    if (scheduled[id]) clearTimeout(scheduled[id]);
+    if (delay <= 0) return;
+
+    // waitUntil keeps SW alive until the notification fires
+    e.waitUntil(new Promise(resolve => {
+      scheduled[id] = setTimeout(() => {
+        delete scheduled[id];
+        self.registration.showNotification('XM Toolkit', {
+          body: `${name} READY — HACK ${hacks}`,
+          icon: './assets/icons/icon-192.png',
+          tag: `portal-${id}-${hacks}`,
+          renotify: true,
+          vibrate: [200, 100, 200, 100, 200],
+        }).then(resolve, resolve);
+      }, delay);
+    }));
+  }
+
+  if (e.data.type === 'cancel') {
+    if (scheduled[e.data.id]) {
+      clearTimeout(scheduled[e.data.id]);
+      delete scheduled[e.data.id];
+    }
+  }
+});
+
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  e.waitUntil(
+    self.clients.matchAll({ type: 'window' }).then(clients => {
+      if (clients.length) clients[0].focus();
+      else self.clients.openWindow('./');
+    })
+  );
+});
+
 self.addEventListener('fetch', e => {
   const isDev = self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1';
 
