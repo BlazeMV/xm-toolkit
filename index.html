@@ -71,8 +71,7 @@
         <div class="tool-desc">Track portal hack cooldowns with floating bubbles</div>
       </div>
 
-      <div class="tool-card coming-soon">
-        <div class="tool-badge">SOON</div>
+      <div class="tool-card" data-screen="range">
         <div class="tool-icon">📡</div>
         <div class="tool-name">RANGE CALCULATOR</div>
         <div class="tool-desc">Calculate portal link range by level</div>
@@ -88,6 +87,49 @@
     </div>
 
     <div id="version-tag"></div>
+  </div>
+
+  <!-- RANGE CALCULATOR -->
+  <div class="screen" id="screen-range">
+    <div id="range-result">
+      <div id="range-value">0</div>
+    </div>
+
+    <div class="section-label">RESONATORS</div>
+    <div id="reso-grid">
+      <div class="reso-slot" data-slot="0"><div class="reso-sprite"></div><span class="reso-level">8</span></div>
+      <div class="reso-slot" data-slot="1"><div class="reso-sprite"></div><span class="reso-level">7</span></div>
+      <div class="reso-slot" data-slot="2"><div class="reso-sprite"></div><span class="reso-level">6</span></div>
+      <div class="reso-slot" data-slot="3"><div class="reso-sprite"></div><span class="reso-level">6</span></div>
+      <div class="reso-slot" data-slot="4"><div class="reso-sprite"></div><span class="reso-level">5</span></div>
+      <div class="reso-slot" data-slot="5"><div class="reso-sprite"></div><span class="reso-level">5</span></div>
+      <div class="reso-slot" data-slot="6"><div class="reso-sprite"></div><span class="reso-level">4</span></div>
+      <div class="reso-slot" data-slot="7"><div class="reso-sprite"></div><span class="reso-level">4</span></div>
+    </div>
+    <div id="reso-level-picker">
+      <button class="reso-lvl-btn" data-lvl="1">1</button>
+      <button class="reso-lvl-btn" data-lvl="2">2</button>
+      <button class="reso-lvl-btn" data-lvl="3">3</button>
+      <button class="reso-lvl-btn" data-lvl="4">4</button>
+      <button class="reso-lvl-btn" data-lvl="5">5</button>
+      <button class="reso-lvl-btn" data-lvl="6">6</button>
+      <button class="reso-lvl-btn" data-lvl="7">7</button>
+      <button class="reso-lvl-btn" data-lvl="8">8</button>
+    </div>
+
+    <div class="section-label" style="margin-top:20px">LINK AMPS</div>
+    <div id="amp-slots">
+      <div class="amp-slot" data-amp="0" data-aval="none"><div class="amp-sprite"></div><span class="amp-type">NONE</span></div>
+      <div class="amp-slot" data-amp="1" data-aval="none"><div class="amp-sprite"></div><span class="amp-type">NONE</span></div>
+      <div class="amp-slot" data-amp="2" data-aval="none"><div class="amp-sprite"></div><span class="amp-type">NONE</span></div>
+      <div class="amp-slot" data-amp="3" data-aval="none"><div class="amp-sprite"></div><span class="amp-type">NONE</span></div>
+    </div>
+    <div id="amp-type-picker">
+      <button class="amp-pick-btn" data-atype="none">NONE</button>
+      <button class="amp-pick-btn" data-atype="rla">RLA</button>
+      <button class="amp-pick-btn" data-atype="sbul">SBUL</button>
+      <button class="amp-pick-btn" data-atype="vrla">VRLA</button>
+    </div>
   </div>
 
   <!-- COOLDOWN TIMER -->

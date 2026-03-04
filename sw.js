@@ -7,6 +7,9 @@ const ASSETS = [
   './manifest.json',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
+  './assets/sprites/resonator.png',
+  './assets/sprites/linkamp.png',
+  './assets/sprites/ultralink.png',
   'https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap'
 ];
 

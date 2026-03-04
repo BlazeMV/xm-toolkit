@@ -2,6 +2,7 @@
 const SCREENS = {
   home:     { el: document.getElementById('screen-home'),     title: null },
   cooldown: { el: document.getElementById('screen-cooldown'), title: 'COOLDOWN' },
+  range:    { el: document.getElementById('screen-range'),    title: 'RANGE CALC' },
 };
 const toolCards  = document.querySelectorAll('.tool-card[data-screen]');
 const topbarBack = document.getElementById('topbar-back');
@@ -269,6 +270,119 @@ tick();
 navigator.serviceWorker && navigator.serviceWorker.ready.then(() => {
   timers.forEach(t => scheduleNotification(t));
 });
+
+// ── Range Calculator ──
+const RESO_COLORS = ['','#fece5a','#ffa630','#ff7315','#e40000','#fd2992','#eb26cd','#c124e0','#9627f4'];
+const AMP_MULT = { none:0, rla:2, sbul:5, vrla:7 };
+const AMP_STACK = [1.0, 0.25, 0.125, 0.125];
+const AMP_LABELS = { none:'NONE', rla:'RLA', sbul:'SBUL', vrla:'VRLA' };
+
+let resoLevels = [8,7,6,6,5,5,4,4];
+let ampTypes = ['none','none','none','none'];
+let activeResoSlot = null;
+let activeAmpSlot = null;
+
+const resoGrid = document.getElementById('reso-grid');
+const resoPicker = document.getElementById('reso-level-picker');
+const ampSlotsEl = document.getElementById('amp-slots');
+const ampPicker = document.getElementById('amp-type-picker');
+const rangeValue = document.getElementById('range-value');
+
+function calcRange() {
+  const avg = resoLevels.reduce((a,b) => a+b, 0) / 8;
+  const base = 160 * Math.pow(avg, 4);
+
+  const mults = ampTypes.map(t => AMP_MULT[t]).filter(m => m > 0).sort((a,b) => b-a);
+  let ampMult = 1;
+  if (mults.length) {
+    let bonus = 0;
+    mults.forEach((m, i) => { bonus += m * AMP_STACK[i]; });
+    ampMult = bonus;
+  }
+
+  const range = Math.round(base * ampMult);
+  rangeValue.textContent = (range / 1000).toFixed(2) + ' km';
+
+  updateResoUI();
+  updateAmpUI();
+}
+
+function updateResoUI() {
+  resoGrid.querySelectorAll('.reso-slot').forEach((slot, i) => {
+    const lvl = resoLevels[i];
+    slot.classList.toggle('active', activeResoSlot === i);
+    const levelEl = slot.querySelector('.reso-level');
+    levelEl.textContent = lvl;
+    levelEl.style.color = RESO_COLORS[lvl];
+    slot.querySelector('.reso-sprite').style.backgroundColor = RESO_COLORS[lvl];
+  });
+  resoPicker.querySelectorAll('.reso-lvl-btn').forEach(btn => {
+    const lvl = parseInt(btn.dataset.lvl);
+    btn.style.color = RESO_COLORS[lvl];
+    btn.style.borderColor = RESO_COLORS[lvl];
+    btn.classList.toggle('selected', activeResoSlot !== null && resoLevels[activeResoSlot] === lvl);
+  });
+}
+
+function updateAmpUI() {
+  ampSlotsEl.querySelectorAll('.amp-slot').forEach((slot, i) => {
+    const type = ampTypes[i];
+    slot.dataset.aval = type;
+    slot.classList.toggle('active', activeAmpSlot === i);
+    slot.querySelector('.amp-type').textContent = AMP_LABELS[type];
+  });
+  ampPicker.querySelectorAll('.amp-pick-btn').forEach(btn => {
+    btn.classList.toggle('selected', activeAmpSlot !== null && ampTypes[activeAmpSlot] === btn.dataset.atype);
+  });
+}
+
+resoGrid.addEventListener('click', e => {
+  const slot = e.target.closest('.reso-slot');
+  if (!slot) return;
+  const idx = parseInt(slot.dataset.slot);
+  if (activeResoSlot === idx) {
+    activeResoSlot = null;
+    resoPicker.classList.remove('visible');
+  } else {
+    activeResoSlot = idx;
+    activeAmpSlot = null;
+    resoPicker.classList.add('visible');
+    ampPicker.classList.remove('visible');
+  }
+  calcRange();
+});
+
+resoPicker.addEventListener('click', e => {
+  const btn = e.target.closest('.reso-lvl-btn');
+  if (!btn || activeResoSlot === null) return;
+  resoLevels[activeResoSlot] = parseInt(btn.dataset.lvl);
+  calcRange();
+});
+
+ampSlotsEl.addEventListener('click', e => {
+  const slot = e.target.closest('.amp-slot');
+  if (!slot) return;
+  const idx = parseInt(slot.dataset.amp);
+  if (activeAmpSlot === idx) {
+    activeAmpSlot = null;
+    ampPicker.classList.remove('visible');
+  } else {
+    activeAmpSlot = idx;
+    activeResoSlot = null;
+    ampPicker.classList.add('visible');
+    resoPicker.classList.remove('visible');
+  }
+  calcRange();
+});
+
+ampPicker.addEventListener('click', e => {
+  const btn = e.target.closest('.amp-pick-btn');
+  if (!btn || activeAmpSlot === null) return;
+  ampTypes[activeAmpSlot] = btn.dataset.atype;
+  calcRange();
+});
+
+calcRange();
 
 const versionTag = document.getElementById('version-tag');
 if (versionTag && typeof APP_VERSION !== 'undefined') versionTag.textContent = `v${APP_VERSION}`;

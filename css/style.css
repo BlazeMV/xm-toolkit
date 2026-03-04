@@ -293,6 +293,169 @@ body::after {
   text-align:center; margin-top:8px;
 }
 
+/* ── RANGE CALCULATOR ── */
+#screen-range {
+  display:flex; flex-direction:column;
+  align-items:center;
+  padding:24px 20px;
+  padding-bottom:env(safe-area-inset-bottom, 20px);
+}
+
+#range-result { text-align:center; margin-bottom:24px; }
+#range-value {
+  font-family:'Orbitron',monospace;
+  font-size:36px; font-weight:900;
+  color:var(--xm);
+  text-shadow:0 0 20px rgba(0,255,157,0.5), 0 0 40px rgba(0,255,157,0.2);
+  letter-spacing:2px;
+  line-height:1.1;
+}
+#screen-range .section-label { width:100%; max-width:340px; }
+
+#reso-grid {
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:8px;
+  max-width:340px; width:100%;
+  margin-bottom:10px;
+}
+
+.reso-slot {
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:10px 6px;
+  display:flex; flex-direction:column;
+  align-items:center; gap:4px;
+  cursor:pointer;
+  transition:all 0.2s;
+}
+.reso-slot:active { transform:scale(0.95); }
+.reso-slot.active {
+  border-color:var(--enl);
+  box-shadow:0 0 12px rgba(0,229,255,0.3);
+  background:rgba(0,229,255,0.08);
+}
+.reso-sprite {
+  width:20px; height:34px;
+  -webkit-mask:url(../assets/sprites/resonator.png) center/contain no-repeat;
+  mask:url(../assets/sprites/resonator.png) center/contain no-repeat;
+  background-color:rgba(0,229,255,0.5);
+  transition:background-color 0.2s;
+}
+.reso-level {
+  font-family:'Orbitron',monospace;
+  font-size:14px; font-weight:700;
+  letter-spacing:1px;
+}
+
+#reso-level-picker {
+  display:none;
+  gap:6px;
+  max-width:340px; width:100%;
+  margin-bottom:10px;
+  justify-content:center;
+}
+#reso-level-picker.visible { display:flex; }
+
+.reso-lvl-btn {
+  width:36px; height:36px;
+  border-radius:8px;
+  border:1px solid rgba(0,229,255,0.2);
+  background:rgba(0,229,255,0.04);
+  font-family:'Orbitron',monospace;
+  font-size:13px; font-weight:700;
+  cursor:pointer;
+  transition:all 0.2s;
+}
+.reso-lvl-btn:active { transform:scale(0.9); }
+.reso-lvl-btn.selected {
+  box-shadow:0 0 10px rgba(0,229,255,0.3);
+  transform:scale(1.1);
+}
+
+#amp-slots {
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:8px;
+  max-width:340px; width:100%;
+  margin-bottom:10px;
+}
+
+.amp-slot {
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:10px 6px;
+  display:flex; flex-direction:column;
+  align-items:center; gap:4px;
+  cursor:pointer;
+  transition:all 0.2s;
+}
+.amp-slot:active { transform:scale(0.95); }
+.amp-slot.active {
+  border-color:var(--enl);
+  box-shadow:0 0 12px rgba(0,229,255,0.3);
+  background:rgba(0,229,255,0.08);
+}
+.amp-sprite {
+  width:28px; height:22px;
+  -webkit-mask:url(../assets/sprites/linkamp.png) center/contain no-repeat;
+  mask:url(../assets/sprites/linkamp.png) center/contain no-repeat;
+  background-color:rgba(0,229,255,0.5);
+  transition:background-color 0.2s;
+}
+.amp-slot[data-aval="rla"] .amp-sprite { background-color:var(--enl); }
+.amp-slot[data-aval="sbul"] .amp-sprite {
+  background-color:var(--warn);
+  -webkit-mask-image:url(../assets/sprites/ultralink.png);
+  mask-image:url(../assets/sprites/ultralink.png);
+}
+.amp-slot[data-aval="vrla"] .amp-sprite { background-color:var(--xm); }
+.amp-type {
+  font-family:'Orbitron',monospace;
+  font-size:8px; font-weight:700;
+  letter-spacing:1px;
+  color:rgba(0,229,255,0.5);
+}
+
+.amp-slot[data-aval="rla"] .amp-type { color:var(--enl); }
+.amp-slot[data-aval="sbul"] .amp-type { color:var(--warn); }
+.amp-slot[data-aval="vrla"] .amp-type { color:var(--xm); }
+.amp-slot[data-aval="rla"] { border-color:rgba(0,229,255,0.3); }
+.amp-slot[data-aval="sbul"] { border-color:rgba(255,107,0,0.3); }
+.amp-slot[data-aval="vrla"] { border-color:rgba(0,255,157,0.3); }
+
+#amp-type-picker {
+  display:none;
+  gap:6px;
+  max-width:340px; width:100%;
+  margin-bottom:10px;
+  justify-content:center;
+}
+#amp-type-picker.visible { display:flex; }
+
+.amp-pick-btn {
+  padding:8px 10px;
+  border-radius:8px;
+  border:1px solid rgba(0,229,255,0.2);
+  background:rgba(0,229,255,0.04);
+  color:rgba(0,229,255,0.6);
+  font-family:'Orbitron',monospace;
+  font-size:8px; font-weight:700;
+  letter-spacing:1px;
+  cursor:pointer;
+  transition:all 0.2s;
+}
+.amp-pick-btn:active { transform:scale(0.9); }
+.amp-pick-btn.selected {
+  box-shadow:0 0 10px rgba(0,229,255,0.3);
+  transform:scale(1.05);
+}
+.amp-pick-btn[data-atype="rla"] { color:var(--enl); border-color:rgba(0,229,255,0.4); }
+.amp-pick-btn[data-atype="sbul"] { color:var(--warn); border-color:rgba(255,107,0,0.4); }
+.amp-pick-btn[data-atype="vrla"] { color:var(--xm); border-color:rgba(0,255,157,0.4); }
+
 /* ── ANDROID INSTALL BANNER ── */
 #install-banner {
   position:fixed; bottom:0; left:0; right:0;
