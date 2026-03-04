@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Ingress-themed Progressive Web App (PWA) — a multi-tool toolkit for Ingress players. Currently ships a portal hack cooldown tracker and portal link range calculator, with VRBB helper planned.
+Ingress-themed Progressive Web App (PWA) — a multi-tool toolkit for Ingress players. Currently ships a portal hack cooldown tracker, portal link range calculator, and settings screen with optional ntfy.sh push notifications. VRBB helper planned.
 
 **Zero dependencies.** Pure vanilla HTML/CSS/JS served as static files. No build step, no bundler, no package.json. Only external resource is Google Fonts CDN (Share Tech Mono + Orbitron).
 
@@ -13,8 +13,8 @@ Ingress-themed Progressive Web App (PWA) — a multi-tool toolkit for Ingress pl
 ```
 index.html          → Single-page app shell, all screens defined here
 env.js              → APP_VERSION constant (single source of truth for version)
-css/style.css       → All styles (~626 lines)
-js/app.js           → All logic (~442 lines)
+css/style.css       → All styles (~720 lines)
+js/app.js           → All logic (~580 lines)
 sw.js               → Service worker (caching + background notification scheduling)
 manifest.json       → PWA manifest (standalone, portrait-primary)
 assets/icons/       → icon-192.png, icon-512.png
@@ -66,6 +66,29 @@ To add a new screen: add HTML in `#screens`, register in the `SCREENS` object in
 - Ingress level colors: L1 `#fece5a` → L8 `#9627f4` (stored in `RESO_COLORS` array)
 - Amp type colors via `data-aval` attribute: RLA=cyan, SBUL=orange, VRLA=green
 - SBUL slots swap mask-image to `ultralink.png`; all others use `linkamp.png`
+
+### Settings Screen
+
+- Accessed via gear icon (⚙) in the topbar (right side)
+- Registered as `settings` in `SCREENS` object
+- Two independent notification channels, both opt-in (disabled by default)
+
+**System Notifications:**
+- `sysNotifEnabled` flag, persisted in `localStorage` key `xm-sysnotif`
+- Toggle requests `Notification.requestPermission()` on enable
+- Gates all SW-based `scheduleNotification()` calls
+- Works foreground on all platforms, background on Android only
+
+**ntfy.sh Notifications:**
+- `ntfyConfig` object `{ server, topic, enabled }`, persisted in `localStorage` key `xm-ntfy`
+- Topic auto-generated on first load via `crypto.getRandomValues()`
+- `sendNtfyNotification()` POSTs to `/{topic}` with `X-Delay` header for scheduled delivery
+- `cancelNtfyNotification()` DELETEs `/{topic}/timer-{timerId}` to cancel pending
+- `X-Icon` header points to `{origin}/assets/icons/icon-192.png` for branded notifications
+- Works in background on both iOS and Android (delivery handled server-side by ntfy.sh)
+- User must install ntfy app and subscribe to topic
+
+**Integration:** `addTimer`, `removeTimer`, bubble tap (restart/force-complete) all call both notification channels. Init reschedule loop only fires SW notifications (ntfy already queued server-side).
 
 ## Design System
 
@@ -140,11 +163,12 @@ To add a new screen: add HTML in `#screens`, register in the `SCREENS` object in
 
 | API | Purpose |
 |-----|---------|
-| localStorage | Timer persistence, install-dismiss cooldown |
+| localStorage | Timer persistence, install-dismiss cooldown, notification config (`xm-sysnotif`, `xm-ntfy`) |
 | Service Worker | Offline support, asset caching, background notification scheduling |
 | Vibration API | Haptic feedback on timer completion `[200,100,200]` (Android only) |
 | Wake Lock API | Keep screen on while timers are running |
-| Notification API | Permission requested on user gesture (first timer add); SW-based delivery |
+| Notification API | Permission requested via settings toggle; SW-based delivery |
+| ntfy.sh API | Optional push notifications via scheduled HTTP POST; cross-platform background delivery |
 | beforeinstallprompt | Android PWA install banner with 7-day dismiss cooldown |
 | Pointer Events | Bubble drag handling (mouse + touch unified) |
 

@@ -10,7 +10,8 @@ An Ingress toolkit PWA for Android and iOS. A collection of tools for Ingress pl
 - Hack counter per portal (auto-increments on cooldown completion)
 - Tap running timer to force-complete (counts as a hack)
 - Tap completed timer to restart cooldown
-- System notifications via Service Worker (works in background on Android)
+- Optional system notifications via Service Worker (works in background on Android)
+- Optional ntfy.sh push notifications — works in background on both iOS and Android
 - Vibration + toast alerts when portal is ready
 - Warning state (orange glow) at 10 seconds remaining
 - Bubbles snap to screen edges and persist positions
@@ -24,6 +25,11 @@ An Ingress toolkit PWA for Android and iOS. A collection of tools for Ingress pl
 - Amp slots color-coded by type (cyan/orange/green) with swappable sprites
 - Default solo L8 deploy preset (8/7/6/6/5/5/4/4)
 - Tap-to-select slots with mutually exclusive pickers
+
+### Settings
+- System notifications toggle (SW-based, opt-in)
+- ntfy.sh push notifications — configure server URL and topic, test button, works cross-platform in background
+- Auto-generated random topic for privacy
 
 ### Coming Soon
 - **Portal Upgrade VRBB Helper** — Portal upgrade & VRBB planning
@@ -64,7 +70,7 @@ The app version is defined in `env.js` as `APP_VERSION`. This single value contr
 
 To release an update, bump the version in `env.js`:
 ```js
-const APP_VERSION = '3.2.0';
+const APP_VERSION = '3.3.0';
 ```
 
 ## Project Structure

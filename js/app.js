@@ -3,6 +3,7 @@ const SCREENS = {
   home:     { el: document.getElementById('screen-home'),     title: null },
   cooldown: { el: document.getElementById('screen-cooldown'), title: 'COOLDOWN' },
   range:    { el: document.getElementById('screen-range'),    title: 'RANGE CALC' },
+  settings: { el: document.getElementById('screen-settings'), title: 'SETTINGS' },
 };
 const toolCards  = document.querySelectorAll('.tool-card[data-screen]');
 const topbarBack = document.getElementById('topbar-back');
@@ -58,10 +59,6 @@ document.getElementById('portal-name-input').addEventListener('keydown', e => {
 });
 
 function addTimer() {
-  // Request notification permission on user gesture (required for iOS PWA)
-  if ('Notification' in window && Notification.permission === 'default') {
-    Notification.requestPermission();
-  }
   const input = document.getElementById('portal-name-input');
   const name = input.value.trim() || `Portal ${timers.length + 1}`;
   const t = { id: Date.now(), name, startedAt: Date.now(), duration: selectedDur * 1000, hacks: 1 };
@@ -69,7 +66,8 @@ function addTimer() {
   input.value = '';
   save();
   spawnBubble(t);
-  scheduleNotification(t);
+  if (sysNotifEnabled) scheduleNotification(t);
+  sendNtfyNotification(t.id, t.name, (t.hacks || 1) + 1, Math.round(t.duration / 1000));
   updateHint();
 }
 
@@ -77,6 +75,7 @@ function removeTimer(id) {
   timers = timers.filter(t => t.id !== id);
   if (bubbleMap[id]) { bubbleMap[id].remove(); delete bubbleMap[id]; }
   cancelNotification(id);
+  cancelNtfyNotification(id);
   save();
   updateHint();
 }
@@ -131,12 +130,14 @@ function spawnBubble(t) {
     if (isDone) {
       timerObj.startedAt = now;
       prevDoneIds.delete(timerObj.id);
-      scheduleNotification(timerObj);
+      if (sysNotifEnabled) scheduleNotification(timerObj);
+      sendNtfyNotification(timerObj.id, timerObj.name, (timerObj.hacks || 1) + 1, Math.round(timerObj.duration / 1000));
     } else {
       timerObj.hacks = (timerObj.hacks || 1) + 1;
       timerObj.startedAt = now - timerObj.duration;
       prevDoneIds.add(timerObj.id);
       cancelNotification(timerObj.id);
+      cancelNtfyNotification(timerObj.id);
     }
     save();
     tick();
@@ -268,7 +269,7 @@ tick();
 
 // Schedule SW notifications for any running timers (handles app restart)
 navigator.serviceWorker && navigator.serviceWorker.ready.then(() => {
-  timers.forEach(t => scheduleNotification(t));
+  if (sysNotifEnabled) timers.forEach(t => scheduleNotification(t));
 });
 
 // ── Range Calculator ──
@@ -424,6 +425,146 @@ window.addEventListener('appinstalled', () => {
   installBanner.classList.remove('show');
   deferredInstallPrompt = null;
 });
+
+// ── Settings / Notifications config ──
+let sysNotifEnabled = false;
+let ntfyConfig = { server: 'https://ntfy.sh', topic: '', enabled: false };
+
+function loadSysNotifConfig() {
+  try { const d = JSON.parse(localStorage.getItem('xm-sysnotif')); if (d) sysNotifEnabled = !!d.enabled; } catch {}
+}
+
+function loadNtfyConfig() {
+  try {
+    const d = JSON.parse(localStorage.getItem('xm-ntfy'));
+    if (d) { ntfyConfig = d; return; }
+  } catch {}
+  ntfyConfig.topic = 'xm-' + Array.from(crypto.getRandomValues(new Uint8Array(8)), b => b.toString(36)).join('').slice(0, 12);
+}
+
+loadSysNotifConfig();
+loadNtfyConfig();
+
+// Gear icon
+document.getElementById('settings-gear').addEventListener('click', () => goTo('settings'));
+
+// Settings screen init
+function initSettingsUI() {
+  const sysToggle = document.getElementById('sysnotif-toggle');
+  const sysState = document.getElementById('sysnotif-state');
+  const ntfyServerInput = document.getElementById('ntfy-server-input');
+  const ntfyTopicInput = document.getElementById('ntfy-topic-input');
+  const ntfyToggle = document.getElementById('ntfy-toggle');
+
+  // Populate
+  ntfyServerInput.value = ntfyConfig.server;
+  ntfyTopicInput.value = ntfyConfig.topic;
+  updateSysToggleUI(sysToggle, sysState);
+  updateNtfyToggleUI(ntfyToggle);
+
+  // System notif toggle
+  sysToggle.addEventListener('click', async () => {
+    if (!sysNotifEnabled) {
+      if ('Notification' in window) {
+        const perm = await Notification.requestPermission();
+        if (perm === 'granted') {
+          sysNotifEnabled = true;
+        } else {
+          showToast('NOTIFICATION PERMISSION DENIED');
+        }
+      } else {
+        showToast('NOTIFICATIONS NOT SUPPORTED');
+      }
+    } else {
+      sysNotifEnabled = false;
+    }
+    localStorage.setItem('xm-sysnotif', JSON.stringify({ enabled: sysNotifEnabled }));
+    updateSysToggleUI(sysToggle, sysState);
+  });
+
+  // ntfy toggle
+  ntfyToggle.addEventListener('click', () => {
+    ntfyConfig.enabled = !ntfyConfig.enabled;
+    updateNtfyToggleUI(ntfyToggle);
+  });
+
+  // Copy topic
+  document.getElementById('ntfy-copy-btn').addEventListener('click', () => {
+    const topic = ntfyTopicInput.value.trim();
+    if (!topic) return;
+    navigator.clipboard.writeText(topic).then(() => showToast('TOPIC COPIED')).catch(() => showToast('COPY FAILED'));
+  });
+
+  // Test
+  document.getElementById('ntfy-test-btn').addEventListener('click', () => testNtfy(ntfyServerInput, ntfyTopicInput));
+
+  // Save
+  document.getElementById('ntfy-save-btn').addEventListener('click', () => {
+    const server = ntfyServerInput.value.trim().replace(/\/+$/, '');
+    const topic = ntfyTopicInput.value.trim();
+    if (!server) { showToast('SERVER URL REQUIRED'); return; }
+    if (!topic) { showToast('TOPIC REQUIRED'); return; }
+    ntfyConfig.server = server;
+    ntfyConfig.topic = topic;
+    localStorage.setItem('xm-ntfy', JSON.stringify(ntfyConfig));
+    showToast('SETTINGS SAVED');
+  });
+}
+
+function updateSysToggleUI(btn, stateEl) {
+  btn.textContent = sysNotifEnabled ? 'ENABLED' : 'DISABLED';
+  btn.classList.toggle('active', sysNotifEnabled);
+  if ('Notification' in window) {
+    stateEl.textContent = Notification.permission === 'granted' ? 'PERMISSION: GRANTED'
+      : Notification.permission === 'denied' ? 'PERMISSION: DENIED' : '';
+  }
+}
+
+function updateNtfyToggleUI(btn) {
+  btn.textContent = ntfyConfig.enabled ? 'ENABLED' : 'DISABLED';
+  btn.classList.toggle('active', ntfyConfig.enabled);
+}
+
+// ntfy API calls
+const ntfyIcon = location.origin + '/assets/icons/icon-192.png';
+
+function sendNtfyNotification(timerId, name, hacks, delaySec) {
+  if (!ntfyConfig.enabled || !ntfyConfig.topic) return;
+  const url = `${ntfyConfig.server}/${ntfyConfig.topic}`;
+  fetch(url, {
+    method: 'POST',
+    headers: {
+      'X-Message-Id': `timer-${timerId}`,
+      'X-Delay': `${delaySec}s`,
+      'X-Title': 'XM Toolkit',
+      'X-Tags': 'zap',
+      'X-Icon': ntfyIcon,
+    },
+    body: `${name} READY — HACK ${hacks}`,
+  }).catch(() => {});
+}
+
+function cancelNtfyNotification(timerId) {
+  if (!ntfyConfig.enabled || !ntfyConfig.topic) return;
+  fetch(`${ntfyConfig.server}/${ntfyConfig.topic}/timer-${timerId}`, {
+    method: 'DELETE',
+  }).catch(() => {});
+}
+
+function testNtfy(serverInput, topicInput) {
+  const server = serverInput.value.trim().replace(/\/+$/, '');
+  const topic = topicInput.value.trim();
+  if (!server || !topic) { showToast('ENTER SERVER & TOPIC FIRST'); return; }
+  fetch(`${server}/${topic}`, {
+    method: 'POST',
+    headers: { 'X-Title': 'XM Toolkit', 'X-Tags': 'white_check_mark', 'X-Icon': ntfyIcon },
+    body: 'Test notification — ntfy is working!',
+  }).then(r => {
+    showToast(r.ok ? 'TEST SENT — CHECK NTFY APP' : 'TEST FAILED: ' + r.status);
+  }).catch(() => showToast('TEST FAILED — CHECK SERVER URL'));
+}
+
+initSettingsUI();
 
 // ── Service worker ──
 if ('serviceWorker' in navigator) {

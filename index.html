@@ -50,6 +50,7 @@
     <div id="topbar-title">XM TOOLKIT</div>
   </div>
   <div id="topbar-screen-name"></div>
+  <button id="settings-gear" aria-label="Settings">&#9881;</button>
 </div>
 
 <!-- Screens -->
@@ -87,6 +88,41 @@
     </div>
 
     <div id="version-tag"></div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="screen" id="screen-settings">
+    <div class="settings-wrap">
+
+      <div class="settings-section">
+        <div class="section-label">SYSTEM NOTIFICATIONS</div>
+        <div class="settings-row">
+          <button class="notif-toggle" id="sysnotif-toggle">DISABLED</button>
+          <span class="settings-hint" id="sysnotif-state"></span>
+        </div>
+        <p class="settings-hint">SW-based alerts. Works foreground on all platforms, background on Android only.</p>
+      </div>
+
+      <div class="settings-section">
+        <div class="section-label">NTFY.SH NOTIFICATIONS</div>
+        <label class="settings-label">SERVER</label>
+        <input id="ntfy-server-input" type="url" placeholder="https://ntfy.sh" autocomplete="off"/>
+        <label class="settings-label">TOPIC</label>
+        <div id="ntfy-topic-row">
+          <input id="ntfy-topic-input" type="text" placeholder="xm-..." maxlength="64" autocomplete="off"/>
+          <button class="btn btn-sm" id="ntfy-copy-btn">COPY</button>
+        </div>
+        <p class="settings-hint">Install the ntfy app. Subscribe to the topic above. Tap TEST to verify.</p>
+        <div class="settings-row">
+          <button class="notif-toggle" id="ntfy-toggle">DISABLED</button>
+        </div>
+        <div class="settings-actions">
+          <button class="btn" id="ntfy-test-btn">TEST</button>
+          <button class="btn btn-primary" id="ntfy-save-btn">SAVE</button>
+        </div>
+      </div>
+
+    </div>
   </div>
 
   <!-- RANGE CALCULATOR -->
