@@ -80,11 +80,12 @@ To add a new screen: add HTML in `#screens`, register in the `SCREENS` object in
 - Works foreground on all platforms, background on Android only
 
 **ntfy.sh Notifications:**
-- `ntfyConfig` object `{ server, topic, enabled }`, persisted in `localStorage` key `xm-ntfy`
+- `ntfyConfig` object `{ server, topic, token, enabled }`, persisted in `localStorage` key `xm-ntfy`
 - Topic auto-generated on first load via `crypto.getRandomValues()`
 - `sendNtfyNotification()` POSTs to `/{topic}` with `X-Delay` header for scheduled delivery
 - `cancelNtfyNotification()` DELETEs `/{topic}/timer-{timerId}` to cancel pending
 - `X-Icon` header points to `{origin}/assets/icons/icon-192.png` for branded notifications
+- Optional `Authorization: Bearer {token}` header for self-hosted servers with auth
 - Works in background on both iOS and Android (delivery handled server-side by ntfy.sh)
 - User must install ntfy app and subscribe to topic
 

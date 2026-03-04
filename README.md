@@ -28,7 +28,7 @@ An Ingress toolkit PWA for Android and iOS. A collection of tools for Ingress pl
 
 ### Settings
 - System notifications toggle (SW-based, opt-in)
-- ntfy.sh push notifications — configure server URL and topic, test button, works cross-platform in background
+- ntfy.sh push notifications — configure server URL, topic, and optional access token for self-hosted servers. Test button, works cross-platform in background
 - Auto-generated random topic for privacy
 
 ### Coming Soon
@@ -70,7 +70,7 @@ The app version is defined in `env.js` as `APP_VERSION`. This single value contr
 
 To release an update, bump the version in `env.js`:
 ```js
-const APP_VERSION = '3.3.0';
+const APP_VERSION = '3.3.1';
 ```
 
 ## Project Structure

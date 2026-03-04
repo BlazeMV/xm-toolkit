@@ -428,7 +428,7 @@ window.addEventListener('appinstalled', () => {
 
 // ── Settings / Notifications config ──
 let sysNotifEnabled = false;
-let ntfyConfig = { server: 'https://ntfy.sh', topic: '', enabled: false };
+let ntfyConfig = { server: 'https://ntfy.sh', topic: '', token: '', enabled: false };
 
 function loadSysNotifConfig() {
   try { const d = JSON.parse(localStorage.getItem('xm-sysnotif')); if (d) sysNotifEnabled = !!d.enabled; } catch {}
@@ -454,11 +454,13 @@ function initSettingsUI() {
   const sysState = document.getElementById('sysnotif-state');
   const ntfyServerInput = document.getElementById('ntfy-server-input');
   const ntfyTopicInput = document.getElementById('ntfy-topic-input');
+  const ntfyTokenInput = document.getElementById('ntfy-token-input');
   const ntfyToggle = document.getElementById('ntfy-toggle');
 
   // Populate
   ntfyServerInput.value = ntfyConfig.server;
   ntfyTopicInput.value = ntfyConfig.topic;
+  ntfyTokenInput.value = ntfyConfig.token || '';
   updateSysToggleUI(sysToggle, sysState);
   updateNtfyToggleUI(ntfyToggle);
 
@@ -506,6 +508,7 @@ function initSettingsUI() {
     if (!topic) { showToast('TOPIC REQUIRED'); return; }
     ntfyConfig.server = server;
     ntfyConfig.topic = topic;
+    ntfyConfig.token = ntfyTokenInput.value.trim();
     localStorage.setItem('xm-ntfy', JSON.stringify(ntfyConfig));
     showToast('SETTINGS SAVED');
   });
@@ -528,18 +531,23 @@ function updateNtfyToggleUI(btn) {
 // ntfy API calls
 const ntfyIcon = location.origin + '/assets/icons/icon-192.png';
 
+function ntfyHeaders(extra) {
+  const h = Object.assign({}, extra);
+  if (ntfyConfig.token) h['Authorization'] = `Bearer ${ntfyConfig.token}`;
+  return h;
+}
+
 function sendNtfyNotification(timerId, name, hacks, delaySec) {
   if (!ntfyConfig.enabled || !ntfyConfig.topic) return;
-  const url = `${ntfyConfig.server}/${ntfyConfig.topic}`;
-  fetch(url, {
+  fetch(`${ntfyConfig.server}/${ntfyConfig.topic}`, {
     method: 'POST',
-    headers: {
+    headers: ntfyHeaders({
       'X-Message-Id': `timer-${timerId}`,
       'X-Delay': `${delaySec}s`,
       'X-Title': 'XM Toolkit',
       'X-Tags': 'zap',
       'X-Icon': ntfyIcon,
-    },
+    }),
     body: `${name} READY — HACK ${hacks}`,
   }).catch(() => {});
 }
@@ -548,6 +556,7 @@ function cancelNtfyNotification(timerId) {
   if (!ntfyConfig.enabled || !ntfyConfig.topic) return;
   fetch(`${ntfyConfig.server}/${ntfyConfig.topic}/timer-${timerId}`, {
     method: 'DELETE',
+    headers: ntfyHeaders({}),
   }).catch(() => {});
 }
 
@@ -555,9 +564,12 @@ function testNtfy(serverInput, topicInput) {
   const server = serverInput.value.trim().replace(/\/+$/, '');
   const topic = topicInput.value.trim();
   if (!server || !topic) { showToast('ENTER SERVER & TOPIC FIRST'); return; }
+  const token = document.getElementById('ntfy-token-input').value.trim();
+  const headers = { 'X-Title': 'XM Toolkit', 'X-Tags': 'white_check_mark', 'X-Icon': ntfyIcon };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
   fetch(`${server}/${topic}`, {
     method: 'POST',
-    headers: { 'X-Title': 'XM Toolkit', 'X-Tags': 'white_check_mark', 'X-Icon': ntfyIcon },
+    headers,
     body: 'Test notification — ntfy is working!',
   }).then(r => {
     showToast(r.ok ? 'TEST SENT — CHECK NTFY APP' : 'TEST FAILED: ' + r.status);

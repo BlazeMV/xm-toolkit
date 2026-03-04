@@ -1,6 +1,6 @@
 # ntfy.sh Push Notifications for Cooldown Timer
 
-## Status: IMPLEMENTED (v3.3.0)
+## Status: IMPLEMENTED (v3.3.1)
 
 ## Overview
 
@@ -55,7 +55,7 @@ Two independent opt-in toggles in settings:
 
 `xm-ntfy`:
 ```json
-{ "server": "https://ntfy.sh", "topic": "xm-a8f3k29x1m4b", "enabled": true }
+{ "server": "https://ntfy.sh", "topic": "xm-a8f3k29x1m4b", "token": "", "enabled": true }
 ```
 
 `xm-sysnotif`:
@@ -69,7 +69,7 @@ Accessed via gear icon (⚙) in the topbar. Navigates to `#screen-settings`.
 
 ### Layout (top to bottom)
 1. **"SYSTEM NOTIFICATIONS" section** — toggle button + permission state label + hint text
-2. **"NTFY.SH NOTIFICATIONS" section** — server URL input, topic input with COPY button, hint text, enable toggle, TEST + SAVE buttons
+2. **"NTFY.SH NOTIFICATIONS" section** — server URL input, topic input with COPY button, access token input (optional, for self-hosted servers with auth), hint text, enable toggle, TEST + SAVE buttons
 
 ### Topic Auto-Generation
 On first load (no config in localStorage), generates random topic:
