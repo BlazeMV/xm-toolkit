@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Ingress-themed Progressive Web App (PWA) — a multi-tool toolkit for Ingress players. Currently ships a portal hack cooldown tracker, with range calculator and VRBB helper planned.
+Ingress-themed Progressive Web App (PWA) — a multi-tool toolkit for Ingress players. Currently ships a portal hack cooldown tracker and portal link range calculator, with VRBB helper planned.
 
 **Zero dependencies.** Pure vanilla HTML/CSS/JS served as static files. No build step, no bundler, no package.json. Only external resource is Google Fonts CDN (Share Tech Mono + Orbitron).
 
@@ -13,11 +13,12 @@ Ingress-themed Progressive Web App (PWA) — a multi-tool toolkit for Ingress pl
 ```
 index.html          → Single-page app shell, all screens defined here
 env.js              → APP_VERSION constant (single source of truth for version)
-css/style.css       → All styles (~460 lines)
-js/app.js           → All logic (~330 lines)
+css/style.css       → All styles (~626 lines)
+js/app.js           → All logic (~442 lines)
 sw.js               → Service worker (caching + background notification scheduling)
 manifest.json       → PWA manifest (standalone, portrait-primary)
 assets/icons/       → icon-192.png, icon-512.png
+assets/sprites/     → resonator.png, linkamp.png, ultralink.png (game item sprites)
 ```
 
 ### Navigation
@@ -53,6 +54,18 @@ To add a new screen: add HTML in `#screens`, register in the `SCREENS` object in
 - Snap to nearest screen edge on drag release
 - Three visual states: running (cyan), warning <10s (orange), done (green)
 - SVG ring uses `stroke-dashoffset` for progress animation
+
+### Range Calculator
+
+- Ephemeral — no localStorage persistence, recalculates on every interaction
+- State: `resoLevels[8]` (default `[8,7,6,6,5,5,4,4]`), `ampTypes[4]` (default all `'none'`)
+- Formula: `160 * avgLevel^4 * ampMultiplier` → displayed as km
+- Amp stacking: diminishing returns `[1.0, 0.25, 0.125, 0.125]`, sorted by multiplier descending
+- `activeResoSlot` / `activeAmpSlot` track which picker is open (mutual exclusion)
+- Sprites use CSS `mask-image` on `<div>` elements — `background-color` provides the tint color
+- Ingress level colors: L1 `#fece5a` → L8 `#9627f4` (stored in `RESO_COLORS` array)
+- Amp type colors via `data-aval` attribute: RLA=cyan, SBUL=orange, VRLA=green
+- SBUL slots swap mask-image to `ultralink.png`; all others use `linkamp.png`
 
 ## Design System
 
@@ -95,7 +108,7 @@ To add a new screen: add HTML in `#screens`, register in the `SCREENS` object in
 ### Naming Conventions
 
 - IDs: kebab-case with semantic prefix (`topbar-back`, `screen-home`, `portal-name-input`)
-- Classes: flat BEM-lite — bubble sub-elements use `pb-` prefix (`pb-ring`, `pb-time`, `pb-name`)
+- Classes: flat BEM-lite — bubble sub-elements use `pb-` prefix (`pb-ring`, `pb-time`, `pb-name`), range calc uses `reso-` / `amp-` prefixes
 - State modifiers: bare words (`.active`, `.done`, `.warning`, `.selected`, `.visible`, `.show`)
 
 ## Versioning

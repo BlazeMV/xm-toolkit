@@ -16,8 +16,16 @@ An Ingress toolkit PWA for Android and iOS. A collection of tools for Ingress pl
 - Bubbles snap to screen edges and persist positions
 - Timer state persists across sessions via localStorage
 
+### Portal Range Calculator
+- Configure 8 resonator levels and up to 4 link amps
+- Real-time km range display using Ingress link range formula (`160 * avgLevel^4`)
+- Link Amp types: RLA (x2), SBUL (x5), VRLA (x7) with diminishing returns stacking
+- Color-coded resonator sprites and level numbers using Ingress level palette (L1 yellow → L8 purple)
+- Amp slots color-coded by type (cyan/orange/green) with swappable sprites
+- Default solo L8 deploy preset (8/7/6/6/5/5/4/4)
+- Tap-to-select slots with mutually exclusive pickers
+
 ### Coming Soon
-- **Portal Range Calculator** — Calculate portal link range by level
 - **Portal Upgrade VRBB Helper** — Portal upgrade & VRBB planning
 
 ## Install
@@ -56,7 +64,7 @@ The app version is defined in `env.js` as `APP_VERSION`. This single value contr
 
 To release an update, bump the version in `env.js`:
 ```js
-const APP_VERSION = '3.1.1';
+const APP_VERSION = '3.2.0';
 ```
 
 ## Project Structure
@@ -73,9 +81,13 @@ xm-toolkit/
 ├── js/
 │   └── app.js          # App logic (navigation, timers, PWA)
 └── assets/
-    └── icons/
-        ├── icon-192.png    # Android / favicon
-        └── icon-512.png    # Android splash / maskable
+    ├── icons/
+    │   ├── icon-192.png    # Android / favicon
+    │   └── icon-512.png    # Android splash / maskable
+    └── sprites/
+        ├── resonator.png   # Resonator sprite (CSS mask tinted)
+        ├── linkamp.png     # Link amp sprite (RLA/VRLA)
+        └── ultralink.png   # Ultra link sprite (SBUL)
 ```
 
 ## Tech Stack
