@@ -1,4 +1,5 @@
-const CACHE = 'xm-toolkit-v3';
+importScripts('./env.js');
+const CACHE = `xm-toolkit-v${APP_VERSION}`;
 const ASSETS = [
   './index.html',
   './css/style.css',

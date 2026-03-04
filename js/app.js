@@ -260,6 +260,9 @@ updateHint();
 setInterval(tick, 1000);
 tick();
 
+const versionTag = document.getElementById('version-tag');
+if (versionTag && typeof APP_VERSION !== 'undefined') versionTag.textContent = `v${APP_VERSION}`;
+
 function escHtml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }

@@ -207,6 +207,16 @@ body::after {
   color: rgba(0,229,255,0.45);
 }
 
+#version-tag {
+  text-align: center;
+  font-family: 'Orbitron', monospace;
+  font-size: 8px;
+  letter-spacing: 2px;
+  color: rgba(0,229,255,0.2);
+  margin-top: 32px;
+  padding-bottom: env(safe-area-inset-bottom, 12px);
+}
+
 /* ── COOLDOWN SCREEN ── */
 #screen-cooldown {
   display: flex; flex-direction: column;
